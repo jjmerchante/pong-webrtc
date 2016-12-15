@@ -26,7 +26,7 @@ var playerB = {
 var disk = {
     posX: 1.0,
     posY: 0.0,
-    dX: -0.02, // CHANGE
+    dX: -0.06, // CHANGE
     dY: 0.0
 }
 
@@ -79,7 +79,6 @@ function handleMouseEvent(event) {
 
   if (playerA.posY > 4) playerA.posY = 4;
   if (playerA.posY < -4) playerA.posY = -4;
-
 }
 
 function setupWebGL() {
@@ -343,8 +342,7 @@ function getUniforms() {
     var pMatrix = mat4.create();
     var ratio = canvas.width / canvas.height;
     mat4.perspective(60, ratio, 0.1, 100, pMatrix);
-    mat4.translate(pMatrix, [0.0, 7.0, -3.0]);
-    mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
-    //--mat4.ortho(-ratio, ratio, -1.0, 1.0, -10.0, 10.0, pMatrix);
+    //mat4.translate(pMatrix, [0.0, 7.0, -3.0]);
+    //mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
     gl.uniformMatrix4fv(glProgram.uPMatrix, false, pMatrix);
 }

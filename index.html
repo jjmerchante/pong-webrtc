@@ -1,17 +1,31 @@
 <!DOCTYPE html>
 <html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Webcam-pong</title>
-    <style>
+    <style media="screen">
         body {
             background-color: grey;
         }
         canvas {
             background-color: white;
         }
+        video {
+            width: 100%;
+            position: relative;
+        }
+        .roomSelection {
+            margin: 3px;
+        }
+        #chat {
+            overflow: auto;
+            background-color: white;
+            height: 250px;
+            border: 1px solid gray;
+        }
     </style>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
     <script src="https://code.jquery.com/jquery-1.12.3.min.js"></script>
     <script src="gl-matrix-min.js"></script>
@@ -37,9 +51,51 @@
 </head>
 
 <body onload="initWebGL()">
-    <canvas id="my-canvas" width="500" height="300">
-        Your browser does not support the HTML5 canvas element.
-    </canvas>
+    <div id="roomSelection" class="container well">
+        <form class="form-inline">
+            <label>Room: </label>
+            <input type="text" class="form-control" id="roomName">
+            <button type="button" class="btn btn-info" id="joinButton">Join</button>
+            <button type="button" class="btn btn-info" id="stopButton" disabled="">Stop</button>
+        </form>
+    </div>
+    <div class="container well">
+        <div class="row">
+            <div class="col-sm-3">
+                <video id="videoLocal" autoplay></video>
+            </div>
+            <div class="col-sm-6">
+                <canvas id="my-canvas" width="500" height="300">
+                    Your browser does not support the HTML5 canvas element.
+                </canvas>
+            </div>
+            <div class="col-sm-3">
+                <video id="videoRemote" autoplay></video>
+            </div>
+        </div>
+    </div>
+    <div class="chatZone container well">
+      <div class="row">
+          <div class="col-sm-6">
+               <div class="form-group">
+                   <label for="comment">Write a message:</label>
+                   <textarea class="form-control" rows="9" cols="40" id="localText"></textarea>
+                   <button type="button" class="btn btn-info" id="sendText">SEND</button>
+              </div>
+
+            </div>
+            <div class="col-sm-6">
+                <div id="chat"></div>
+            </div>
+        </div>
+    </div>
+    </body>
+    <script src="https://code.jquery.com/jquery-1.12.3.min.js"></script>
+    <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+    <script src="adapter.js"></script>
+    <script src="webcamHandler2.js" charset="utf-8"></script>
+    <script src="socketHandler2.js" charset="utf-8"></script>
+
 </body>
 
 </html>
