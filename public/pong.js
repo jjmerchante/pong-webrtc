@@ -13,6 +13,8 @@ var mvMatrix = mat4.create();
 masterPong = false;
 pongRunning = false;
 
+var mov_axis = 'y';
+
 var DX_INIT = 0.1;
 var DX_MAX = 0.58;
 var DX_INCR = 0.03;
@@ -20,7 +22,8 @@ var DX_INCR = 0.03;
 var DY_MAX = 0.22;
 var DY_HIT_INCR = 0.31;
 
-var DISK_FACES = 20;
+var MAX_BAR_POS = 3.7;
+var DISK_FACES = 15;
 
 var playerA = {
     posX: -6.0,
@@ -89,33 +92,56 @@ function initColorBarSelection() {
 
 function handleKeyEvent(ev) {
     var ymov = 0.3;
-    if (ev.which == 38){
-        playerA.posY += ymov;
-        if (playerA.posY > 4) playerA.posY = 4;
-    }else if (ev.which == 40) {
-        playerA.posY -= ymov;
-        if (playerA.posY < -4) playerA.posY = -4;
+    if (mov_axis=='y'){
+        if (ev.which == 38){
+            playerA.posY += ymov;
+            if (playerA.posY > MAX_BAR_POS) playerA.posY = MAX_BAR_POS;
+        }else if (ev.which == 40) {
+            playerA.posY -= ymov;
+            if (playerA.posY < -MAX_BAR_POS) playerA.posY = -MAX_BAR_POS;
+        }
+    } else {
+        if (ev.which == 37){
+            playerA.posY += ymov;
+            if (playerA.posY > MAX_BAR_POS) playerA.posY = MAX_BAR_POS;
+        }else if (ev.which == 39) {
+            playerA.posY -= ymov;
+            if (playerA.posY < -MAX_BAR_POS) playerA.posY = -MAX_BAR_POS;
+        }
     }
 }
 
 function handleMouseEvent(event) {
-  // http://stackoverflow.com/a/18053642
-  var rect = canvas.getBoundingClientRect();
-  var x = event.clientX - rect.left;
-  var y = event.clientY - rect.top;
-
-  playerA.posY = 3.7 * (1- y/(canvas.height/2));
-  if (playerA.posY > 3.7) playerA.posY = 3.7;
-  if (playerA.posY < -3.7) playerA.posY = -3.7;
+    // http://stackoverflow.com/a/18053642
+    var rect = canvas.getBoundingClientRect();
+    var x = event.clientX - rect.left;
+    var y = event.clientY - rect.top;
+    if (mov_axis=='y'){
+        playerA.posY = MAX_BAR_POS * (1- y/(canvas.height/2));
+        if (playerA.posY > MAX_BAR_POS) playerA.posY = MAX_BAR_POS;
+        if (playerA.posY < -MAX_BAR_POS) playerA.posY = -MAX_BAR_POS;
+    } else {
+        playerA.posY = MAX_BAR_POS * (1- x/(canvas.width/2));
+        if (playerA.posY > MAX_BAR_POS) playerA.posY = MAX_BAR_POS;
+        if (playerA.posY < -MAX_BAR_POS) playerA.posY = -MAX_BAR_POS;
+    }
 }
 
 function changeCamera(type) {
     var pMatrix = mat4.create();
     var ratio = canvas.width / canvas.height;
     mat4.perspective(60, ratio, 0.1, 100, pMatrix);
-    if (type == '3d'){
+    if (type == '3d side'){
         mat4.translate(pMatrix, [0.0, 7.0, -3.0]);
         mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
+        mov_axis = 'y';
+    } else if (type == '3d back') {
+        mat4.translate(pMatrix, [0.0, 10.0, -6.0]);
+        mat4.rotate(pMatrix, 1.57, [0.0, 0.0, 1.0]);
+        mat4.rotate(pMatrix, 1.0, [0.0, 0.5, 0.0]);
+        mov_axis = 'x';
+    } else {
+        mov_axis = 'y';
     }
     gl.uniformMatrix4fv(glProgram.uPMatrix, false, pMatrix);
 }
@@ -328,7 +354,7 @@ function checkDiskLimits() {
 
 function iluminateDisk() {
     disk.color.b = 0
-    setTimeout(function () {disk.color.b = 1}, 300);
+    setTimeout(function () {disk.color.b = 1}, 200);
 }
 
 function calculateDiskPosition() {
