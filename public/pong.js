@@ -101,9 +101,9 @@ function handleMouseEvent(event) {
   var x = event.clientX - rect.left;
   var y = event.clientY - rect.top;
 
-  playerA.posY = 4 * (1- y/(canvas.height/2))
-  if (playerA.posY > 4) playerA.posY = 4;
-  if (playerA.posY < -4) playerA.posY = -4;
+  playerA.posY = 3.7 * (1- y/(canvas.height/2));
+  if (playerA.posY > 3.7) playerA.posY = 3.7;
+  if (playerA.posY < -3.7) playerA.posY = -3.7;
 }
 
 function changeCamera(type) {
@@ -118,7 +118,6 @@ function changeCamera(type) {
 }
 
 function sendGameStatus() {
-    //TODO: ADD score
     var objToSend = {
         'type': 'game_status',
         'disk': {'x': disk.posX, 'y': disk.posY},
@@ -331,7 +330,7 @@ function calculateDiskPosition() {
         newPoint(playerA);
         setTimeout(function () {pongRunning=true}, 2000);
     }
-    if (disk.posY > 5 || disk.posY < -5) {
+    if (disk.posY > 4.8 || disk.posY < -4.8) {
         disk.posY -= disk.dY;
         disk.dY = -disk.dY;
     }
@@ -362,10 +361,6 @@ function calculateDiskPosition() {
     }
 }
 
-function functionName() {
-
-}
-
 function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -380,7 +375,26 @@ function drawScene() {
     drawDisk();
     drawBarPlayer(playerA);
     drawBarPlayer(playerB);
+    drawWall(-5.4);
+    drawWall(5.4);
     drawBoard();
+}
+
+function drawWall(ypos) {
+    mat4.identity(mvMatrix);
+    mat4.translate(mvMatrix, [0, ypos, -10]);
+    mat4.scale(mvMatrix, [7, 0.2, 0.2]);
+
+    gl.uniformMatrix4fv(glProgram.uMVMatrix, false, mvMatrix);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeAttributesBuffer);
+    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 4*(3+3), 0);
+    gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 4*(3+3), 4*3);
+
+    gl.uniform3f(glProgram.ucolor, 0, 0.7, 0);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndicesBuffer);
+    gl.drawElements(gl.TRIANGLES, 6*6, gl.UNSIGNED_SHORT, 0);
 }
 
 function drawBoard() {
@@ -402,8 +416,8 @@ function drawBoard() {
 
 function drawBarPlayer(player) {
     mat4.identity(mvMatrix);
-    mat4.translate(mvMatrix, [player.posX, player.posY, -10.0]);
-    mat4.scale(mvMatrix, [0.2, 1.5, 0.4]);
+    mat4.translate(mvMatrix, [player.posX, player.posY, -9.9]);
+    mat4.scale(mvMatrix, [0.2, 1.5, 0.3]);
     gl.uniformMatrix4fv(glProgram.uMVMatrix, false, mvMatrix);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeAttributesBuffer);
@@ -442,10 +456,9 @@ function getUniforms() {
     mat4.perspective(60, ratio, 0.1, 100, pMatrix);
     mat4.translate(pMatrix, [0.0, 7.0, -3.0]);
     mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
-
-    //mat4.rotate(pMatrix, 1.55, [0.0, 0.0, 1.0]);
-    //mat4.rotate(pMatrix, 0.7, [0.0, 1.0, 1.0]);
-    //mat4.translate(pMatrix, [0.0, 7.0, -3.0]);
+    //watch bar
+    //mat4.translate(pMatrix, [4.0, 13.0, -3.0]);
+    //mat4.rotate(pMatrix, 1, [-5.0, 0.0, 0.00]);
 
     gl.uniformMatrix4fv(glProgram.uPMatrix, false, pMatrix);
 }
