@@ -10,27 +10,37 @@ var vertexColorAttribute = null,
     cubeIndicesBuffer = null;
 var diskIndicesBuffer = null;
 var mvMatrix = mat4.create();
+masterPong = false;
+pongRunning = false;
+
+var DX_INIT = 0.1;
+var DX_MAX = 0.65;
+var DX_INCR = 0.03;
+var DY_MAX = 0.1;
 
 var playerA = {
     posX: -6.0,
     posY: 0.0,
-    color: {r:1, g:0, b:0}
+    color: {r:1, g:0, b:0},
+    score: 0
 }
 
 var playerB = {
     posX: 6.0,
     posY: 0.0,
-    color: {r:0, g:0, b:1}
+    color: {r:0, g:0, b:1},
+    score: 0
 }
 
 var disk = {
-    posX: 1.0,
+    posX: 0.0,
     posY: 0.0,
-    dX: -0.06, // CHANGE
+    dX: DX_INIT,
     dY: 0.0
 }
 
 function initWebGL() {
+    initColorBarSelection();
     canvas = document.getElementById("my-canvas");
     try {
         gl = canvas.getContext("webgl") ||
@@ -52,18 +62,32 @@ function initWebGL() {
     }
 }
 
+function initColorBarSelection() {
+    function refreshSwatch() {
+        playerA.color.r = $( "#redBar" ).slider("value")/255,
+        playerA.color.g = $( "#greenBar" ).slider("value")/255,
+        playerA.color.b = $( "#blueBar" ).slider("value")/255;
+    }
+
+    $( "#redBar, #greenBar, #blueBar" ).slider({
+      orientation: "horizontal",
+      range: "min",
+      max: 255,
+      value: 127,
+      slide: refreshSwatch,
+      change: refreshSwatch
+    });
+    $( "#redBar" ).slider( "value", 0 );
+    $( "#greenBar" ).slider( "value", 0 );
+    $( "#blueBar" ).slider( "value", 255 );
+}
+
 function handleKeyEvent(ev) {
     var ymov = 0.3;
     if (ev.which == 38){
-        playerB.posY += ymov;
-        if (playerB.posY > 4) playerB.posY = 4;
-    }else if (ev.which == 87) {
         playerA.posY += ymov;
         if (playerA.posY > 4) playerA.posY = 4;
     }else if (ev.which == 40) {
-        playerB.posY -= ymov;
-        if (playerB.posY < -4) playerB.posY = -4;
-    }else if (ev.which == 83) {
         playerA.posY -= ymov;
         if (playerA.posY < -4) playerA.posY = -4;
     }
@@ -76,9 +100,63 @@ function handleMouseEvent(event) {
   var y = event.clientY - rect.top;
 
   playerA.posY = 4 * (1- y/(canvas.height/2))
-
   if (playerA.posY > 4) playerA.posY = 4;
   if (playerA.posY < -4) playerA.posY = -4;
+}
+
+function changeCamera(type) {
+    var pMatrix = mat4.create();
+    var ratio = canvas.width / canvas.height;
+    mat4.perspective(60, ratio, 0.1, 100, pMatrix);
+    if (type == '3d'){
+        mat4.translate(pMatrix, [0.0, 7.0, -3.0]);
+        mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
+    }
+    gl.uniformMatrix4fv(glProgram.uPMatrix, false, pMatrix);
+}
+
+function sendGameStatus() {
+    //TODO: ADD score
+    var objToSend = {
+        'type': 'game_status',
+        'disk': {'x': disk.posX, 'y': disk.posY},
+        'player': {'y': playerA.posY, 'color': playerA.color},
+        'score': {'you': playerB.score, 'me': playerA.score}
+    }
+    window.LocalDC.send(JSON.stringify(objToSend));
+}
+
+function sendPlayerPosition() {
+    var objToSend = {
+        'type': 'game_status',
+        'player': {'y': playerA.posY, 'color': playerA.color}
+    }
+    window.LocalDC.send(JSON.stringify(objToSend));
+}
+
+function updateStatusPong(msg) {
+    if (!masterPong){
+        disk.posX = -msg.disk.x;
+        disk.posY = msg.disk.y;
+        if (msg.score.you > playerA.score){
+            newPoint(playerA);
+        }
+        if (msg.score.me > playerB.score){
+            newPoint(playerB);
+        }
+        playerA.score = msg.score.you;
+        playerB.score = msg.score.me;
+    }
+    playerB.posY = msg.player.y;
+    playerB.color = msg.player.color;
+}
+
+function newPoint(player) {
+    //player scores
+    $( "#score" ).effect( 'shake', {}, 2000);
+    player.score += 1;
+    $('#localScore').html(playerA.score);
+    $('#remoteScore').html(playerB.score);
 }
 
 function setupWebGL() {
@@ -89,7 +167,6 @@ function setupWebGL() {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
-
 }
 
 function initShaders() {
@@ -231,19 +308,26 @@ function setupBuffers() {
     gl.enableVertexAttribArray(vertexColorAttribute);
 }
 
+function resetDisk() {
+    disk.posX = 0;
+    disk.posY = 0;
+    disk.dY = 0;
+    disk.dX = disk.dX < 0 ? DX_INIT : -DX_INIT;
+}
+
 function calculateDiskPosition() {
     disk.posX += disk.dX;
     disk.posY += disk.dY;
     if (disk.posX > 7) {
-        disk.posX = 0;
-        disk.posY = 0;
-        disk.dY = 0;
-        disk.dX = -disk.dX;
+        pongRunning = false;
+        resetDisk();
+        newPoint(playerB);
+        setTimeout(function () {pongRunning=true}, 2000);
     }else if (disk.posX < -7) {
-        disk.posX = 0;
-        disk.posY = 0;
-        disk.dY = 0;
-        disk.dX = -disk.dX;
+        pongRunning = false;
+        resetDisk();
+        newPoint(playerA);
+        setTimeout(function () {pongRunning=true}, 2000);
     }
     if (disk.posY > 5 || disk.posY < -5) {
         disk.posY -= disk.dY;
@@ -254,34 +338,42 @@ function calculateDiskPosition() {
         disk.dX = -Math.abs(disk.dX);
         disk.posX += disk.dX;
         disk.dY += (disk.posY-playerB.posY)*0.02;
-        if (disk.dY > 0.05) disk.dY = 0.05;
-        if (disk.dY < -0.05) disk.dY = -0.05;
+        if (disk.dY > DY_MAX) disk.dY = DY_MAX;
+        if (disk.dY < -DY_MAX) disk.dY = -DY_MAX;
+        disk.dX -= DX_INCR;
+        if (disk.dX > DX_MAX) disk.dx = DX_MAX;
     }
     if (disk.posX < -5.2 && disk.posX > -6 && (playerA.posY+1.5)>(disk.posY-0.4) && (playerA.posY-1.5)<(disk.posY+0.4)){
         disk.dX = Math.abs(disk.dX);
         disk.posX += disk.dX;
         disk.dY += (disk.posY-playerA.posY)*0.02;
-        if (disk.dY > 0.05) disk.dY = 0.05;
-        if (disk.dY < -0.05) disk.dY = -0.05;
+        if (disk.dY > DY_MAX) disk.dY = DY_MAX;
+        if (disk.dY < -DY_MAX) disk.dY = -DY_MAX;
+        disk.dX += DX_INCR;
+        if (disk.dX > DX_MAX) disk.dx = DX_MAX;
     }
 }
 
 function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    calculateDiskPosition();
+    if (window.pongRunning){
+        if (window.masterPong){
+            calculateDiskPosition();
+            sendGameStatus();
+        } else {
+            sendPlayerPosition();
+        }
+    }
     drawDisk();
     drawBarPlayer(playerA);
     drawBarPlayer(playerB);
     drawBoard();
 }
 
-var angleBoard = 0.0;
 function drawBoard() {
-    //angleBoard+=0.05;
     mat4.identity(mvMatrix);
     mat4.translate(mvMatrix, [0, 0, -12.0]);
-    //mat4.rotate(mvMatrix, angle, [1, 2, 3]);
     mat4.scale(mvMatrix, [7, 5.6, 1.8]);
 
     gl.uniformMatrix4fv(glProgram.uMVMatrix, false, mvMatrix);
@@ -296,12 +388,9 @@ function drawBoard() {
     gl.drawElements(gl.TRIANGLES, 6*6, gl.UNSIGNED_SHORT, 0);
 }
 
-//var angleBar = 0.0;
 function drawBarPlayer(player) {
-    //angle+=0.05;
     mat4.identity(mvMatrix);
     mat4.translate(mvMatrix, [player.posX, player.posY, -10.0]);
-    //mat4.rotate(mvMatrix, angle, [1, 2, 3]);
     mat4.scale(mvMatrix, [0.2, 1.5, 0.4]);
     gl.uniformMatrix4fv(glProgram.uMVMatrix, false, mvMatrix);
 
@@ -315,12 +404,9 @@ function drawBarPlayer(player) {
     gl.drawElements(gl.TRIANGLES, 6*6, gl.UNSIGNED_SHORT, 0);
 }
 
-//var angleDisk = 0.0;
 function drawDisk() {
-    //angleDisk+=0.001;
     mat4.identity(mvMatrix);
     mat4.translate(mvMatrix, [disk.posX, disk.posY, -10.0]);
-    //mat4.rotate(mvMatrix, angle, [0.5, 0.5, 0.5]);
     mat4.scale(mvMatrix, [0.4, 0.4, 0.15]);
     gl.uniformMatrix4fv(glProgram.uMVMatrix, false, mvMatrix);
 
@@ -342,7 +428,12 @@ function getUniforms() {
     var pMatrix = mat4.create();
     var ratio = canvas.width / canvas.height;
     mat4.perspective(60, ratio, 0.1, 100, pMatrix);
+    mat4.translate(pMatrix, [0.0, 7.0, -3.0]);
+    mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
+
+    //mat4.rotate(pMatrix, 1.55, [0.0, 0.0, 1.0]);
+    //mat4.rotate(pMatrix, 0.7, [0.0, 1.0, 1.0]);
     //mat4.translate(pMatrix, [0.0, 7.0, -3.0]);
-    //mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
+
     gl.uniformMatrix4fv(glProgram.uPMatrix, false, pMatrix);
 }
