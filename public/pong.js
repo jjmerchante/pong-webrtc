@@ -14,9 +14,11 @@ masterPong = false;
 pongRunning = false;
 
 var DX_INIT = 0.1;
-var DX_MAX = 0.65;
+var DX_MAX = 0.15;//0.55
 var DX_INCR = 0.03;
-var DY_MAX = 0.1;
+
+var DY_MAX = 0.15;
+var DY_HIT_INCR = 0.2;
 
 var playerA = {
     posX: -6.0,
@@ -337,21 +339,31 @@ function calculateDiskPosition() {
     if (disk.posX > 5.2 && disk.posX < 6 && (playerB.posY+1.5)>(disk.posY-0.4) && (playerB.posY-1.5)<(disk.posY+0.4)){
         disk.dX = -Math.abs(disk.dX);
         disk.posX += disk.dX;
-        disk.dY += (disk.posY-playerB.posY)*0.02;
+        disk.dY += (disk.posY-playerB.posY)/1.9*DY_HIT_INCR;
+        //level up
+        disk.dX -= DX_INCR;
+        //check game limits
         if (disk.dY > DY_MAX) disk.dY = DY_MAX;
         if (disk.dY < -DY_MAX) disk.dY = -DY_MAX;
-        disk.dX -= DX_INCR;
         if (disk.dX > DX_MAX) disk.dx = DX_MAX;
+        if (disk.dX < -DX_MAX) disk.dx = -DX_MAX;
     }
     if (disk.posX < -5.2 && disk.posX > -6 && (playerA.posY+1.5)>(disk.posY-0.4) && (playerA.posY-1.5)<(disk.posY+0.4)){
         disk.dX = Math.abs(disk.dX);
         disk.posX += disk.dX;
-        disk.dY += (disk.posY-playerA.posY)*0.02;
-        if (disk.dY > DY_MAX) disk.dY = DY_MAX;
-        if (disk.dY < -DY_MAX) disk.dY = -DY_MAX;
+        disk.dY += (disk.posY-playerA.posY)/1.9*DY_HIT_INCR;
+        //level up
         disk.dX += DX_INCR;
-        if (disk.dX > DX_MAX) disk.dx = DX_MAX;
+        //check game limits
+        if (disk.dY > DY_MAX)  disk.dY = DY_MAX;
+        if (disk.dY < -DY_MAX) disk.dY = -DY_MAX;
+        if (disk.dX > DX_MAX)  disk.dx = DX_MAX;
+        if (disk.dX < -DX_MAX) disk.dx = -DX_MAX;
     }
+}
+
+function functionName() {
+
 }
 
 function drawScene() {
