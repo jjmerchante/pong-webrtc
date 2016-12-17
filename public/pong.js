@@ -10,21 +10,22 @@ var vertexColorAttribute = null,
     cubeIndicesBuffer = null;
 var diskIndicesBuffer = null;
 var mvMatrix = mat4.create();
+
 masterPong = false;
 pongRunning = false;
 pongStarted = false;
 
 var mov_axis = 'y';
 
-var DX_INIT = 0.1;
-var DX_MAX = 0.58;
-var DX_INCR = 0.03;
+const DX_INIT = 0.1;
+const DX_MAX = 0.58;
+const DX_INCR = 0.03;
 
-var DY_MAX = 0.22;
-var DY_HIT_INCR = 0.31;
+const DY_MAX = 0.22;
+const DY_HIT_INCR = 0.31;
 
-var MAX_BAR_POS = 3.7;
-var DISK_FACES = 15;
+const MAX_BAR_POS = 3.7;
+const DISK_FACES = 15;
 
 var playerA = {
     posX: -6.0,
@@ -71,6 +72,7 @@ function initWebGL() {
     }
 }
 
+//JQueryUI
 function initColorBarSelection() {
     function refreshSwatch() {
         playerA.color.r = $( "#redBar" ).slider("value")/255,
@@ -167,15 +169,9 @@ function sendPlayerPosition() {
 }
 
 function updateStatusPong(msg) {
-    if (!masterPong){
+    if (!masterPong && msg.disk){
         disk.posX = -msg.disk.x;
         disk.posY = msg.disk.y;
-        if (msg.score.you > playerA.score)
-            newPoint(playerA);
-        else if (msg.score.me > playerB.score)
-            newPoint(playerB);
-        playerA.score = msg.score.you;
-        playerB.score = msg.score.me;
         if (Math.abs(disk.posX) === 5.40000000001)
             iluminateDisk();
     }
@@ -183,13 +179,24 @@ function updateStatusPong(msg) {
     playerB.color = msg.player.color;
 }
 
+function updateScore(msg) {
+    window.pongRunning = false;
+    if (msg.score.you > playerA.score){
+       newPoint(playerA);
+    }else if (msg.score.me > playerB.score){
+       newPoint(playerB);
+    }
+}
+
 function newPoint(player) {
+    window.masterPong = !window.masterPong;
     newIntervalGo(3);
     //player scores
     $( "#score" ).effect( 'shake', {}, 2000);
     player.score += 1;
     $('#localScore').html(playerA.score);
     $('#remoteScore').html(playerB.score);
+    resetDisk();
 }
 
 function newIntervalGo(timeLeft) {
@@ -358,7 +365,7 @@ function resetDisk() {
     disk.posX = 0;
     disk.posY = 0;
     disk.dY = 0;
-    disk.dX = disk.dX < 0 ? DX_INIT : -DX_INIT;
+    disk.dX = DX_INIT;
 }
 
 function checkDiskLimits() {
@@ -379,8 +386,13 @@ function calculateDiskPosition(delta) {
     //Point score
     if (Math.abs(disk.posX) > 7) {
         pongRunning = false;
-        if (disk.posX > 7) newPoint(playerB); else newPoint(playerA);
-        resetDisk();
+        if (disk.posX > 7) newPoint(playerB);
+        else newPoint(playerA);
+        var objToSend = {
+            'type': 'update_score',
+            'score': {'you': playerB.score, 'me': playerA.score}
+        }
+        window.LocalDC.send(JSON.stringify(objToSend));
     }
     //Wall
     if (disk.posY > 4.8 || disk.posY < -4.8) {
@@ -411,7 +423,6 @@ function moveTestPlayer() {
     playerA.posY = disk.posY + Math.random()*(-1.0-1.0) + 1.0;
 }
 
-var tps = 0;
 var lastUpdate = 0;
 function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -435,7 +446,7 @@ function drawScene() {
         }
     }
 
-    moveTestPlayer();
+    //moveTestPlayer();
 
     //cube buffer
     bindCubeBuffers();// 1 method for performance

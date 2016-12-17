@@ -130,7 +130,6 @@ function onAnswerReceived(sdpAnswer) {
 }
 
 function onOpenDataChannelLocal() {
-    //TODO: Empezar comunicación
     console.log('Data Channel open');
     $('#sendText').prop('disabled', false);
     $('#sendText').click(sendMessage);
@@ -200,7 +199,6 @@ function onDataChannelCreated(ev) {
 }
 
 function onMessageReceived(ev) {
-    //TODO: json stringify :  game
     var msg = JSON.parse(ev.data);
     if (msg.type === 'chat_message') {
         $('#chat').append('<div><strong>Other:</strong> ' + msg.content + '</div>');
@@ -213,6 +211,8 @@ function onMessageReceived(ev) {
     } else if (msg.type === 'GO!') {
         window.pongStarted = true;
         newIntervalGo(10);
+    } else if (msg.type === 'update_score') {
+        updateScore(msg);
     } else {
         console.error("Not defined type", msg.type);
     }
