@@ -411,6 +411,7 @@ function moveTestPlayer() {
     playerA.posY = disk.posY + Math.random()*(-1.0-1.0) + 1.0;
 }
 
+var tps = 0;
 var lastUpdate = 0;
 function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -419,6 +420,8 @@ function drawScene() {
     var delta = 1;
     if (lastUpdate){
         delta = 30*(time-lastUpdate)/1000;
+        if (delta > 1.7)
+            console.log(delta)
     }
     lastUpdate = time;
     if (window.pongStarted && window.pongRunning && window.masterPong){
@@ -432,29 +435,32 @@ function drawScene() {
         }
     }
 
-    //moveTestPlayer();
-    drawDisk();
+    moveTestPlayer();
+
+    //cube buffer
+    bindCubeBuffers();// 1 method for performance
     drawBarPlayer(playerA);
     drawBarPlayer(playerB);
     drawWall(-5.4);
     drawWall(5.4);
     drawBoard();
+    //disk buffer
+    drawDisk();//uses a diferent buffer
+}
+
+function bindCubeBuffers() {
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeAttributesBuffer);
+    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 4*(3+3), 0);
+    gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 4*(3+3), 3*4);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndicesBuffer);
 }
 
 function drawWall(ypos) {
     mat4.identity(mvMatrix);
     mat4.translate(mvMatrix, [0, ypos, -10]);
     mat4.scale(mvMatrix, [7, 0.2, 0.2]);
-
     gl.uniformMatrix4fv(glProgram.uMVMatrix, false, mvMatrix);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeAttributesBuffer);
-    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 4*(3+3), 0);
-    gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 4*(3+3), 4*3);
-
     gl.uniform3f(glProgram.ucolor, 0, 0.7, 0);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndicesBuffer);
     gl.drawElements(gl.TRIANGLES, 6*6, gl.UNSIGNED_SHORT, 0);
 }
 
@@ -462,16 +468,8 @@ function drawBoard() {
     mat4.identity(mvMatrix);
     mat4.translate(mvMatrix, [0, 0, -12.0]);
     mat4.scale(mvMatrix, [7, 5.6, 1.8]);
-
     gl.uniformMatrix4fv(glProgram.uMVMatrix, false, mvMatrix);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeAttributesBuffer);
-    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 4*(3+3), 0);
-    gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 4*(3+3), 4*3);
-
     gl.uniform3f(glProgram.ucolor, 0, 0.8, 0);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndicesBuffer);
     gl.drawElements(gl.TRIANGLES, 6*6, gl.UNSIGNED_SHORT, 0);
 }
 
@@ -480,26 +478,19 @@ function drawBarPlayer(player) {
     mat4.translate(mvMatrix, [player.posX, player.posY, -9.9]);
     mat4.scale(mvMatrix, [0.2, 1.5, 0.3]);
     gl.uniformMatrix4fv(glProgram.uMVMatrix, false, mvMatrix);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeAttributesBuffer);
-    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 4*(3+3), 0);
-    gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 4*(3+3), 3*4);
-
     gl.uniform3f(glProgram.ucolor, player.color.r, player.color.g, player.color.b);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndicesBuffer);
     gl.drawElements(gl.TRIANGLES, 6*6, gl.UNSIGNED_SHORT, 0);
 }
 
 function drawDisk() {
+    gl.bindBuffer(gl.ARRAY_BUFFER, diskAttributesBuffer);
+    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 4*(3+3), 0);
+    gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 4*(3+3), 3*4);
+
     mat4.identity(mvMatrix);
     mat4.translate(mvMatrix, [disk.posX, disk.posY, -10.0]);
     mat4.scale(mvMatrix, [0.4, 0.4, 0.15]);
     gl.uniformMatrix4fv(glProgram.uMVMatrix, false, mvMatrix);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, diskAttributesBuffer);
-    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 4*(3+3), 0);
-    gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 4*(3+3), 3*4);
 
     gl.uniform3f(glProgram.ucolor, disk.color.r, disk.color.g, disk.color.b);
 
@@ -517,9 +508,6 @@ function getUniforms() {
     mat4.perspective(60, ratio, 0.1, 100, pMatrix);
     mat4.translate(pMatrix, [0.0, 7.0, -3.0]);
     mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
-    //watch disk
-    //mat4.translate(pMatrix, [0.0, 7.0, 5.0]);
-    //mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
 
     gl.uniformMatrix4fv(glProgram.uPMatrix, false, pMatrix);
 }
