@@ -12,6 +12,7 @@ var diskIndicesBuffer = null;
 var mvMatrix = mat4.create();
 masterPong = false;
 pongRunning = false;
+pongStarted = false;
 
 var mov_axis = 'y';
 
@@ -116,6 +117,7 @@ function handleMouseEvent(event) {
     var rect = canvas.getBoundingClientRect();
     var x = event.clientX - rect.left;
     var y = event.clientY - rect.top;
+    // end
     if (mov_axis=='y'){
         playerA.posY = MAX_BAR_POS * (1- y/(canvas.height/2));
         if (playerA.posY > MAX_BAR_POS) playerA.posY = MAX_BAR_POS;
@@ -182,11 +184,25 @@ function updateStatusPong(msg) {
 }
 
 function newPoint(player) {
+    newIntervalGo(3);
     //player scores
     $( "#score" ).effect( 'shake', {}, 2000);
     player.score += 1;
     $('#localScore').html(playerA.score);
     $('#remoteScore').html(playerB.score);
+}
+
+function newIntervalGo(timeLeft) {
+    var goInterval = setInterval(function () {
+        if (timeLeft > 0){
+            $('#timeLeft').html(timeLeft);
+        } else {
+            clearInterval(goInterval);
+            $('#timeLeft').html('GO!');
+            window.pongRunning = true;
+        }
+        timeLeft--;
+    }, 1000);
 }
 
 function setupWebGL() {
@@ -357,15 +373,14 @@ function iluminateDisk() {
     setTimeout(function () {disk.color.b = 1}, 200);
 }
 
-function calculateDiskPosition() {
-    disk.posX += disk.dX;
-    disk.posY += disk.dY;
-    //Point
+function calculateDiskPosition(delta) {
+    disk.posX += disk.dX*delta;
+    disk.posY += disk.dY*delta;
+    //Point score
     if (Math.abs(disk.posX) > 7) {
         pongRunning = false;
         if (disk.posX > 7) newPoint(playerB); else newPoint(playerA);
         resetDisk();
-        setTimeout(function () {pongRunning=true}, 2000);
     }
     //Wall
     if (disk.posY > 4.8 || disk.posY < -4.8) {
@@ -375,7 +390,7 @@ function calculateDiskPosition() {
     //playerB
     if (disk.posX > 5.4 && disk.posX < 6.4 && (playerB.posY+1.5)>(disk.posY-0.4) && (playerB.posY-1.5)<(disk.posY+0.4)){
         disk.dX = -Math.abs(disk.dX);
-        disk.posX = 5.40000000001;//Corrected
+        disk.posX = 5.40000000001;//Correct position
         disk.dY += (disk.posY-playerB.posY)/1.9*DY_HIT_INCR;
         disk.dX -= DX_INCR;//level up
         checkDiskLimits();
@@ -384,7 +399,7 @@ function calculateDiskPosition() {
     //playerA
     if (disk.posX < -5.4 && disk.posX > -6.4 && (playerA.posY+1.5)>(disk.posY-0.4) && (playerA.posY-1.5)<(disk.posY+0.4)){
         disk.dX = Math.abs(disk.dX);
-        disk.posX = -5.40000000001;//Corrected
+        disk.posX = -5.40000000001;//correct position
         disk.dY += (disk.posY-playerA.posY)/1.9*DY_HIT_INCR;
         disk.dX += DX_INCR;//level up
         checkDiskLimits();
@@ -393,20 +408,30 @@ function calculateDiskPosition() {
 }
 
 function moveTestPlayer() {
-    playerA.posY = disk.posY + Math.random()*(-1.5-1.5) + 1.5;
+    playerA.posY = disk.posY + Math.random()*(-1.0-1.0) + 1.0;
 }
 
+var lastUpdate = 0;
 function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    if (window.pongRunning){
+    var time =  Date.now();
+    var delta = 1;
+    if (lastUpdate){
+        delta = 30*(time-lastUpdate)/1000;
+    }
+    lastUpdate = time;
+    if (window.pongStarted && window.pongRunning && window.masterPong){
+        calculateDiskPosition(delta);
+    }
+    if (window.pongStarted){
         if (window.masterPong){
-            calculateDiskPosition();
             sendGameStatus();
         } else {
             sendPlayerPosition();
         }
     }
+
     //moveTestPlayer();
     drawDisk();
     drawBarPlayer(playerA);
