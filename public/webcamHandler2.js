@@ -156,13 +156,13 @@ function sendMessage() {
 
 function checkMasterPong() {
     if (HisNumber !== null && HisNumber !== null){
-        if (MyNumber > HisNumber){
+        if (MyNumber > HisNumber){ //I'm the master
             window.masterPong = true;
             //Wait until GO!
         } else if (MyNumber === HisNumber) {
             HisNumber = null;
             MyNumber = null;
-            beginGame();
+            sendBeginGame();//again
         } else {
             LocalDC.send(JSON.stringify({
                 'type': 'GO!',
@@ -184,12 +184,10 @@ function sendBeginGame() {
 }
 
 function onCloseDataChannelLocal() {
-    //TODO: Send error
     $('#sendText').prop('disabled', true);
     $('#chat').empty();
     $('#sendText').unbind('click');
     $('#localText').unbind('keyup');
-
 }
 
 function onDataChannelCreated(ev) {
@@ -220,8 +218,8 @@ function onMessageReceived(ev) {
 }
 
 function stopCommunication() {
-    //TODO: Stop webgl
     window.Signaling.sendBye();
+    stopWebGl();
     if (LocalStream) {
         LocalStream.getTracks().forEach(function(track) {
             track.stop();

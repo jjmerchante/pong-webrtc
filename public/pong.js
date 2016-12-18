@@ -11,6 +11,7 @@ var vertexColorAttribute = null,
 var diskIndicesBuffer = null;
 var mvMatrix = mat4.create();
 
+goInterval = null;
 masterPong = false;
 pongRunning = false;
 pongStarted = false;
@@ -155,7 +156,6 @@ function sendGameStatus() {
         'type': 'game_status',
         'disk': {'x': disk.posX, 'y': disk.posY},
         'player': {'y': playerA.posY, 'color': playerA.color},
-        'score': {'you': playerB.score, 'me': playerA.score}
     }
     window.LocalDC.send(JSON.stringify(objToSend));
 }
@@ -200,13 +200,16 @@ function newPoint(player) {
 }
 
 function newIntervalGo(timeLeft) {
-    var goInterval = setInterval(function () {
+    if (goInterval) clearInterval(goInterval);
+    goInterval = setInterval(function () {
         if (timeLeft > 0){
             $('#timeLeft').html(timeLeft);
         } else {
             clearInterval(goInterval);
+            goInterval = null;
             $('#timeLeft').html('GO!');
-            window.pongRunning = true;
+            if (window.pongStarted)
+                window.pongRunning = true;
         }
         timeLeft--;
     }, 1000);
@@ -386,7 +389,7 @@ function calculateDiskPosition(delta) {
     //Point score
     if (Math.abs(disk.posX) > 7) {
         pongRunning = false;
-        if (disk.posX > 7) newPoint(playerB);
+        if (disk.posX < 7) newPoint(playerB);
         else newPoint(playerA);
         var objToSend = {
             'type': 'update_score',
@@ -431,8 +434,7 @@ function drawScene() {
     var delta = 1;
     if (lastUpdate){
         delta = 30*(time-lastUpdate)/1000;
-        if (delta > 1.7)
-            console.log(delta)
+        if (delta > 2) console.log(masterPong, delta);
     }
     lastUpdate = time;
     if (window.pongStarted && window.pongRunning && window.masterPong){
@@ -521,4 +523,22 @@ function getUniforms() {
     mat4.rotate(pMatrix, 0.7, [-1.0, 0.0, 0.0]);
 
     gl.uniformMatrix4fv(glProgram.uPMatrix, false, pMatrix);
+}
+
+function stopWebGl() {
+    masterPong = false;
+    pongRunning = false;
+    pongStarted = false;
+
+    playerA.score = 0;
+
+    playerB.posY = 0.0;
+    playerB.color = {r:0, g:0, b:1};
+    playerB.score = 0;
+    $('#localScore').html('0');
+    $('#remoteScore').html('0');
+    clearInterval(goInterval);
+    $('#timeLeft').html('Wait...');
+
+    resetDisk();
 }
