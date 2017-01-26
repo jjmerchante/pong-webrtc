@@ -5,3 +5,5 @@ Online pong game with the use of WebGL and WebRTC. You can play with almost ever
 This game is running at https://pong.merpi.tk/
 
 If you want to run the game in your own server, execute `npm install` and run with `node server.js`. Change the certificates if you want it more secure.
+
+![Pong Screenshot](https://raw.githubusercontent.com/jjmerchante/pong-webrtc/master/screenshot.png "Pong Screenshot")
